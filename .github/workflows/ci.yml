@@ -1,0 +1,23 @@
+name: GEOEngine CI
+on:
+  push: { paths: ['geo-engine/**'] }
+  pull_request: { paths: ['geo-engine/**'] }
+jobs:
+  privacy-check:
+    name: PRIVACY CHECK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for privacy leaks
+        run: python3 scripts/privacy-check.py geo-engine/
+  file-check:
+    name: FILE CHECK
+    runs-on: ubuntu-latest
+    needs: [privacy-check]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          for f in geo-engine/Makefile geo-engine/LICENSE geo-engine/README.md geo-engine/ARCHITECTURE.md geo-engine/.env.example geo-engine/docker-compose.yml geo-engine/scripts/setup.sh geo-engine/scripts/setup.ps1; do
+            [ ! -f "$f" ] && echo "::error::Missing $f" && exit 1
+          done
+          echo "All files OK"

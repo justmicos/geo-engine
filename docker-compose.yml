@@ -1,0 +1,72 @@
+name: geoengine
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: geoengine-postgres
+    environment:
+      POSTGRES_DB: geo_flow
+      POSTGRES_USER: geo_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geo_password}
+    ports:
+      - "127.0.0.1:${DB_EXPOSE_PORT:-15432}:5432"
+    volumes:
+      - ./docker-data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geo_user -d geo_flow"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    container_name: geoengine-redis
+    ports:
+      - "127.0.0.1:${REDIS_EXPOSE_PORT:-16379}:6379"
+    restart: unless-stopped
+  geoflow:
+    image: geoflow-app:latest
+    build:
+      context: ./geoflow-src
+      dockerfile: docker/Dockerfile
+    container_name: geoengine-app
+    env_file: .env
+    environment:
+      APP_URL: http://localhost:${APP_PORT:-18080}
+      DB_HOST: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-geo_password}
+      REDIS_HOST: redis
+      AUTO_INIT_ONCE: "true"
+    ports:
+      - "127.0.0.1:${APP_PORT:-18080}:8080"
+    volumes:
+      - ./geoflow-src:/var/www/html
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    restart: unless-stopped
+  queue:
+    image: geoflow-app:latest
+    container_name: geoengine-queue
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-geo_password}
+      REDIS_HOST: redis
+    command: ["php","artisan","queue:work","redis","--queue=geoflow,distribution,default","--sleep=1","--tries=1","--timeout=300"]
+    volumes:
+      - ./geoflow-src:/var/www/html
+    depends_on: [geoflow]
+    restart: unless-stopped
+  scheduler:
+    image: geoflow-app:latest
+    container_name: geoengine-scheduler
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-geo_password}
+      REDIS_HOST: redis
+    command: ["php","artisan","schedule:work"]
+    volumes:
+      - ./geoflow-src:/var/www/html
+    depends_on: [geoflow]
+    restart: unless-stopped
