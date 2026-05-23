@@ -46,9 +46,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="GEOEngine AI Gateway",
-    version="2.0.0",
-    description="Multi-provider AI routing proxy for GEOEngine",
+    title="KEngine AI Gateway",
+    version="2.1.0",
+    description="Multi-provider AI routing proxy for KEngine",
     lifespan=lifespan,
 )
 

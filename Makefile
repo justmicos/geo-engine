@@ -19,11 +19,11 @@ dev-setup: ## One-click setup (clone GEOFlow + create .env)
 # =============================================================================
 dev-up: ## Start core services (app + postgres + redis + queue + scheduler)
 	docker compose up -d
-	@echo ">>> GEOEngine at http://localhost:${APP_PORT:-18080}/geo_admin"
+	@echo ">>> KEngine at http://localhost:${APP_PORT:-18080}/geo_admin"
 
 dev-up-all: ## Start ALL services including AI Gateway and fine-tuner
 	docker compose --profile all up -d
-	@echo ">>> GEOEngine at http://localhost:${APP_PORT:-18080}/geo_admin"
+	@echo ">>> KEngine at http://localhost:${APP_PORT:-18080}/geo_admin"
 	@echo ">>> AI Gateway at http://localhost:${AI_GATEWAY_PORT:-19090}/v1"
 
 dev-up-gateway: ## Start core + AI Gateway only

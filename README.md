@@ -107,8 +107,8 @@ Docker 24+, Docker Compose 2.20+, Git 2.30+, AI API Key (any provider)
 
 ### Install
 ```bash
-git clone https://github.com/justmicos/geo-engine.git
-cd geo-engine
+git clone https://github.com/justmicos/kengine.git
+cd kengine
 make dev-setup
 # Edit .env -> set at least one AI provider (see .env.example)
 make dev-up

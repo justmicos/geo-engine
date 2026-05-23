@@ -88,8 +88,8 @@ Docker 24+, Docker Compose 2.20+, Git 2.30+, AI API Key（任意提供商）
 
 ### 安装
 ```bash
-git clone https://github.com/justmicos/geo-engine.git
-cd geo-engine
+git clone https://github.com/justmicos/kengine.git
+cd kengine
 make dev-setup
 # 编辑 .env -> 设置至少一个 AI Provider
 make dev-up
