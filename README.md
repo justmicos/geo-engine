@@ -1,131 +1,118 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" alt="">
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="">
-  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker" alt="">
-  <img src="https://img.shields.io/badge/PHP_8.2+-777BB4?style=for-the-badge&logo=php" alt="">
-  <img src="https://img.shields.io/badge/PostgreSQL_pgvector-336791?style=for-the-badge&logo=postgresql" alt="">
+  <img src="https://img.shields.io/badge/KEngine-Knowledge%20Engine-blue?style=for-the-badge" alt="KEngine">
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT">
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker" alt="Docker">
+  <img src="https://img.shields.io/badge/PHP_8.2+-777BB4?style=for-the-badge&logo=php" alt="PHP">
+  <img src="https://img.shields.io/badge/PostgreSQL_pgvector-336791?style=for-the-badge&logo=postgresql" alt="PostgreSQL">
 </p>
 
-<p align="center"><b>English</b> · <a href="README_CN.md">中文</a></p>
-<p align="center"><b>GEO Content Engineering Infrastructure</b></p>
-<p align="center"><i>Knowledge → Generate → Distribute → Analyze — Transform trusted knowledge into publishable, distributable, trackable GEO content assets.</i></p>
+<p align="center">
+  <b>English</b> · <a href="README_CN.md">中文</a>
+</p>
+
+<h1 align="center">KEngine</h1>
+<p align="center"><b>Open-Source Knowledge Base Platform</b></p>
+<p align="center"><i>Upload. Organize. Search. Ask. — Your private, self-hosted knowledge engine powered by AI.</i></p>
 
 ---
 
-## Overview
+## What is KEngine?
 
-GEOEngine is a production-ready deployment kit for GEOFlow, the leading open-source GEO content engineering platform. It orchestrates the entire content lifecycle — from knowledge ingestion and AI generation through review, multi-site distribution, and performance analytics — into one cohesive system that runs 100% on your infrastructure.
+KEngine is a self-hosted, open-source knowledge base platform that transforms your documents into a searchable, AI-augmented knowledge asset. Upload your files, and KEngine automatically processes, chunks, vectorizes, and indexes them — ready for semantic search and AI-powered Q&A.
 
-### System Architecture
+Your data stays on your infrastructure. Always.
 
-```mermaid
-flowchart TB
-    subgraph User["Users"]
-        A[Admin] -->|manage| B[Web UI]
-        C[API Client] -->|consume| D[REST API]
-    end
-    subgraph Core["GEOEngine Core"]
-        B --> E[Laravel 12]
-        D --> E
-        E --> F[(PostgreSQL+pgvector)]
-        E --> G[(Redis)]
-    end
-    subgraph Workers["Workers"]
-        H[Scheduler] -->|scan| I[Queue Worker]
-        I -->|AI gen| J[AI API]
-        I -->|RAG| K[(Vector Store)]
-    end
-    subgraph Output["Output"]
-        L[Review/Publish] --> M[Articles]
-        M --> N[Distribution]
-        N --> O[Target Sites]
-    end
-    E --> L; J --> M; K --> I
-```
+### Why KEngine?
 
-### Pipeline Overview
+| Problem | Solution |
+|---------|----------|
+| Scattered documents | Centralized knowledge base with auto-categorization |
+| Hard to find information | Semantic search understands meaning, not keywords |
+| Manual processing | Auto-chunking and vectorization pipeline |
+| Privacy concerns | 100% self-hosted, data never leaves your network |
+| High costs | Free, open-source, MIT License |
+
+---
+
+## Core Features
+
+### Document Processing Pipeline
 
 ```mermaid
 flowchart LR
-    subgraph In["Input"]
-        KB[Knowledge Base] --> VC[Vectorize]
-        TL[Titles] --> TP[Pool]
-        KL[Keywords] --> KP[Pool]
+    subgraph Input["Upload"]
+        A[Files] --> P[Processor]
     end
-    subgraph P["Process"]
-        TP --> TASK[Task Engine]
-        KP --> TASK; RAG[RAG] --> TASK
-        TASK --> AI[AI Generation]
+    subgraph Process["Processing"]
+        P --> CH[Chunking]
+        CH --> V[Vector Embedding]
+        V --> I[(pgvector Index)]
     end
-    subgraph Rev["Review"]
-        AI --> DRAFT[Draft] --> RV[Review Gate]
-        RV -->|Approve| PUB[Published]
-        RV -->|Reject| REJ[Rejected]
+    subgraph Query["Query"]
+        Q[Query] --> S[Semantic Search]
+        S --> R[RAG Retrieval]
+        R --> AI[AI Answer]
+        I --> S
     end
-    subgraph Out["Distribute"]
-        PUB --> LOCAL[Local Site]
-        PUB --> DIST[Queue] --> SITES[Target Sites]
-    end
-    VC --> RAG
-    SITES --> STATS[Analytics]
-    LOCAL --> STATS
 ```
 
-### Task Lifecycle
+### Key Capabilities
 
-```mermaid
-stateDiagram-v2
-    [*] --> Created: Admin creates
-    Created --> Scheduled: Scheduler picks
-    Scheduled --> Generating: Worker starts
-    Generating --> DraftReady: AI returns
-    Generating --> Failed: API error
-    Failed --> Scheduled: Retry
-    DraftReady --> InReview: Admin reviews
-    InReview --> Published: Approved
-    InReview --> Rejected: Declined
-    Published --> Distributed: To targets
-    Published --> Archived
-    Rejected --> [*]
-    Archived --> [*]
-```
+| Feature | Description |
+|---------|-------------|
+| Document Upload | Upload Markdown and plain text files, auto-processed |
+| Smart Chunking | Documents split into optimized chunks |
+| Vector Embedding | Each chunk embedded via AI model |
+| Semantic Search | Find by meaning, not keywords |
+| AI Q&A | Answers grounded in your documents |
+| REST API | Full programmatic access |
+
+### System Services
+
+| Service | Port | Role |
+|---------|------|------|
+| kengine-postgres | 15432 | PostgreSQL 16 + pgvector |
+| kengine-redis | 16379 | Cache and queue |
+| kengine-app | 18080 | Web UI + REST API |
+| kengine-queue | - | Knowledge processing worker |
+| kengine-scheduler | - | Task scheduler |
 
 ---
 
 ## Quick Start
 
+### Prerequisites
+Docker 24+, Docker Compose 2.20+, Git 2.30+, AI API Key
+
+### Install
 ```bash
-# Clone and setup
 git clone https://github.com/justmicos/geo-engine.git
 cd geo-engine
 make dev-setup
 # Edit .env -> set AI_API_KEY (required)
 make dev-up
-
-# Verify
-make dev-status
-open http://localhost:18080/geo_admin
 ```
 
-## Features
+Windows:
+```powershell
+.\scripts\setup.ps1
+docker compose up -d
+```
 
-| Area | Capabilities |
-|------|-------------|
-| Knowledge Engine | Upload docs, auto-chunk, pgvector, RAG retrieval |
-| Content Factory | Title/keyword/image libraries, AI generation, review pipeline |
-| Distribution | Channel management, Agent protocol, WordPress integration |
-| Analytics | System overview, per-site ops, distribution tracking, AI crawler detection |
+Open http://localhost:18080/admin
+
+---
 
 ## Commands
 
 ```bash
-make dev-setup     # One-click setup
+make dev-setup     # Setup and configure
 make dev-up        # Start services
 make dev-down      # Stop services
-make dev-logs      # Follow logs
+make dev-logs      # View logs
+make dev-status    # Service status
 make backup        # Backup database
-make restore FILE=x  # Restore from backup
-make privacy-check # Privacy leak scan
+make privacy-check # Privacy scan
 ```
 
 ## Configuration
@@ -133,13 +120,10 @@ make privacy-check # Privacy leak scan
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | AI_API_KEY | YES | - | AI provider API key |
-| AI_API_URL | No | https://api.deepseek.com/v1 | API endpoint |
+| AI_API_URL | No | https://api.deepseek.com/v1 | AI API endpoint |
 | AI_MODEL | No | deepseek-chat | Model name |
 | APP_PORT | No | 18080 | Web UI port |
-| SITE_NAME | No | GEOEngine | Site name |
 
 ## License
 
-MIT License -- see [LICENSE](LICENSE).
-
-Built on [GEOFlow](https://github.com/yaojingang/GEOFlow) by yaojingang (Apache 2.0).
+MIT License

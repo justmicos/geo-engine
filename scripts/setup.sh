@@ -5,9 +5,9 @@ info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 command -v docker &>/dev/null || { error "Docker required"; exit 1; }
-if [ ! -d "geoflow-src" ]; then
-    info "Cloning GEOFlow..."
-    git clone --depth=1 https://github.com/yaojingang/GEOFlow.git geoflow-src
+if [ ! -d "kengine-src" ]; then
+    info "Cloning knowledge engine source..."
+    git clone --depth=1 https://github.com/justmicos/GEOFlow.git kengine-src
 fi
 [ ! -f ".env" ] && cp .env.example .env && warn "Edit .env to set AI_API_KEY"
 info "Building Docker images..."

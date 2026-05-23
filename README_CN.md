@@ -1,125 +1,74 @@
-# GEOEngine — GEO 内容工程基础设施
+<p align="center">
+  <img src="https://img.shields.io/badge/KEngine-知识引擎-blue?style=for-the-badge" alt="KEngine">
+  <img src="https://img.shields.io/badge/许可证-MIT-green?style=for-the-badge" alt="MIT">
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker" alt="Docker">
+</p>
 
-[![状态](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)]()
-[![许可证](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)]()
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker)]()
-[![PHP](https://img.shields.io/badge/PHP_8.2+-777BB4?style=for-the-badge&logo=php)]()
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL_pgvector-336791?style=for-the-badge&logo=postgresql)]()
+<p align="center">
+  <a href="README.md">English</a> | <b>中文</b>
+</p>
 
-> [English](README.md) | **中文**
-
-**知识沉淀 → AI 生成 → 审核发布 → 多站分发 → 效果追踪** — 将可信知识转化为可管理、可发布、可追踪、可同步到多端的 GEO 内容资产。
+<h1 align="center">KEngine</h1>
+<p align="center"><b>开源知识库平台</b></p>
+<p align="center"><i>上传 · 整理 · 搜索 · 问答 — 你的私有、自托管、AI 驱动的知识引擎。</i></p>
 
 ---
 
-## 系统架构
+## 什么是 KEngine？
 
-```mermaid
-flowchart TB
-    subgraph User["用户层"]
-        A[管理员] --> B[Web 后台]
-        C[API 客户端] --> D[REST API]
-    end
-    subgraph Core["核心引擎"]
-        B --> E[Laravel 12]
-        D --> E
-        E --> F[(PostgreSQL + pgvector)]
-        E --> G[(Redis 缓存/队列)]
-    end
-    subgraph Workers["后台任务"]
-        H[调度器] --> I[队列工人]
-        I --> J[AI API]
-        I --> K[(知识库向量)]
-    end
-    subgraph Output["输出管线"]
-        L[审核发布] --> M[文章库]
-        M --> N[分发队列]
-        N --> O[目标站点]
-    end
-    subgraph Analytics["分析"]
-        R[访问日志] --> S[仪表盘]
-        T[AI 爬虫] --> S
-    end
-    E --> L; J --> M; K --> I; S --> E
-```
+KEngine 是一个自托管的开源知识库平台，将文档转化为可搜索、AI 增强的知识资产。上传文件后自动处理、切片、向量化并建立索引 —— 随时进行语义搜索和 AI 问答。
 
-## 端到端工作流
+你的数据永远留在你的基础设施上。
+
+### 文档处理管线
 
 ```mermaid
 flowchart LR
-    subgraph In["输入"]
-        KB[知识库] --> VC[向量化]
-        TL[标题库] --> TP[标题池]
-        KL[关键词库] --> KP[关键词池]
-    end
-    subgraph P["处理"]
-        VC --> RAG; TP --> TASK[任务引擎]
-        KP --> TASK; RAG --> TASK
-        TASK --> AI[AI 生成 + RAG]
-    end
-    subgraph Rv["审核"]
-        AI --> DRAFT[草稿] --> REVIEW[审核] --> PUBLISH{通过?}
-        PUBLISH -->|是| PUB[已发布]
-        PUBLISH -->|否| REJ[已拒绝]
-    end
-    subgraph O["输出"]
-        PUB --> LOCAL[本地] --> STATS[分析]
-        PUB --> DIST[分发] --> SITES[目标站点] --> STATS
-    end
+    A[上传文档] --> B[智能切片]
+    B --> C[向量嵌入]
+    C --> D[(pgvector)]
+    D --> E[语义搜索]
+    E --> F[AI 回答]
 ```
 
-## 任务生命周期
+### 功能
 
-```mermaid
-stateDiagram-v2
-    [*] --> 已创建: 管理员创建
-    已创建 --> 已调度: 调度器拾取
-    已调度 --> 生成中: 队列启动
-    生成中 --> 草稿就绪: AI 返回
-    生成中 --> 失败: API 错误
-    失败 --> 已调度: 重试
-    草稿就绪 --> 审核中: 管理员审查
-    审核中 --> 已发布: 批准
-    审核中 --> 已拒绝: 驳回
-    已发布 --> 已分发: 推送目标站
-    已发布 --> 已归档: 手动
-    已归档 --> [*]
-```
-
-## 功能
-
-### 知识引擎
-上传文档 → 自动切片 → 向量嵌入 → pgvector 存储 → RAG 召回 → AI 生成
-
-### 内容工厂
-| 模块 | 功能 |
+| 功能 | 说明 |
 |------|------|
-| 标题库 | AI/手动标题，智能采样 |
-| 关键词库 | SEO 关键词分组 |
-| 图片库 | 图片管理，自动同步 |
-| 任务自动化 | 定时生成 + 审核关卡 |
-
-### 分发网络
-创建渠道 → 生成目标包 → 部署 Agent → 内容推送 → 健康监控
+| 文档上传 | 支持 Markdown、纯文本，自动处理 |
+| 智能切片 | 自动分割为优化块 |
+| 向量嵌入 | AI 模型生成向量 |
+| 语义搜索 | 按语义查找，非关键词 |
+| AI 问答 | 基于知识库内容的智能回答 |
+| REST API | 程序化访问接口 |
 
 ## 快速开始
 
 ```bash
 git clone https://github.com/justmicos/geo-engine.git
 cd geo-engine
-# 编辑 .env → 设置 AI_API_KEY
 make dev-setup
+# 编辑 .env -> 设置 AI_API_KEY（必填）
 make dev-up
-# 打开 http://localhost:18080/geo_admin
+# 打开 http://localhost:18080/admin
+```
+
+## 命令
+
+```bash
+make dev-setup     # 安装配置
+make dev-up        # 启动服务
+make dev-down      # 停止服务
+make backup        # 备份数据库
+make privacy-check # 隐私扫描
 ```
 
 ## 配置
 
 | 变量 | 必填 | 默认值 | 说明 |
 |------|------|--------|------|
-| AI_API_KEY | **是** | - | AI API 密钥 |
-| AI_API_URL | 否 | https://api.deepseek.com/v1 | AI 端点 |
-| AI_MODEL | 否 | deepseek-chat | 生成模型 |
+| AI_API_KEY | 是 | - | AI 密钥 |
+| AI_API_URL | 否 | https://api.deepseek.com/v1 | API 端点 |
 | APP_PORT | 否 | 18080 | Web 端口 |
 
 ## 许可证
