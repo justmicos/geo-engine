@@ -1,0 +1,32 @@
+# Default LoRA fine-tuning recipe
+# Used when FINE_TUNE_METHOD=lora (default)
+base_model: Qwen/Qwen2.5-7B-Instruct
+method: lora
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.1
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+training:
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  epochs: 3
+  learning_rate: 2.0e-4
+  warmup_steps: 10
+  weight_decay: 0.01
+  optimizer: adamw_8bit
+  scheduler: linear
+  max_seq_length: 4096
+dataset:
+  format: alpaca
+  max_samples: 1000
+output:
+  save_strategy: epoch
+  save_total_limit: 2

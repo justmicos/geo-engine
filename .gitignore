@@ -1,5 +1,9 @@
 .env
+kengine-src/
 docker-data/
+fine-tune/output/*
+fine-tune/datasets/*
+!fine-tune/datasets/.gitkeep
 *.log
 .DS_Store
 Thumbs.db

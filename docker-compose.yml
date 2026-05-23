@@ -1,5 +1,9 @@
 name: geoengine
+
 services:
+  # ===========================================================================
+  # Core: PostgreSQL 16 + pgvector — Knowledge & vector storage
+  # ===========================================================================
   postgres:
     image: pgvector/pgvector:pg16
     container_name: kengine-postgres
@@ -17,12 +21,20 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+
+  # ===========================================================================
+  # Core: Redis — Queue & cache backend
+  # ===========================================================================
   redis:
     image: redis:7-alpine
     container_name: kengine-redis
     ports:
       - "127.0.0.1:${REDIS_EXPOSE_PORT:-16379}:6379"
     restart: unless-stopped
+
+  # ===========================================================================
+  # Core: Laravel App — Web UI + REST API
+  # ===========================================================================
   app:
     image: kengine-app:latest
     build:
@@ -44,6 +56,10 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }
     restart: unless-stopped
+
+  # ===========================================================================
+  # Core: Queue Worker — Processes AI generation & knowledge tasks
+  # ===========================================================================
   queue:
     image: kengine-app:latest
     container_name: kengine-queue
@@ -52,11 +68,16 @@ services:
       DB_HOST: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD:-geo_password}
       REDIS_HOST: redis
+      AI_GATEWAY_URL: http://ai-gateway:${AI_GATEWAY_PORT:-19090}
     command: ["php","artisan","queue:work","redis","--queue=geoflow,distribution,default","--sleep=1","--tries=1","--timeout=300"]
     volumes:
       - ./kengine-src:/var/www/html
     depends_on: [app]
     restart: unless-stopped
+
+  # ===========================================================================
+  # Core: Task Scheduler — Triggers periodic jobs (evolution included)
+  # ===========================================================================
   scheduler:
     image: kengine-app:latest
     container_name: kengine-scheduler
@@ -65,8 +86,74 @@ services:
       DB_HOST: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD:-geo_password}
       REDIS_HOST: redis
+      AI_GATEWAY_URL: http://ai-gateway:${AI_GATEWAY_PORT:-19090}
     command: ["php","artisan","schedule:work"]
     volumes:
       - ./kengine-src:/var/www/html
     depends_on: [app]
     restart: unless-stopped
+
+  # ===========================================================================
+  # [NEW] AI Gateway — Multi-provider AI routing proxy
+  # ===========================================================================
+  # Routes all AI requests to the correct provider based on model name prefix.
+  # Supports: OpenAI, Anthropic, Google, DeepSeek, Azure, AWS Bedrock,
+  #           Ollama, LM Studio, vLLM, LocalAI, llama.cpp, and any
+  #           OpenAI-compatible endpoint.
+  # ===========================================================================
+  ai-gateway:
+    build:
+      context: ./ai-gateway
+      dockerfile: Dockerfile
+    container_name: kengine-ai-gateway
+    env_file: .env
+    environment:
+      AI_GATEWAY_PORT: ${AI_GATEWAY_PORT:-19090}
+      AI_GATEWAY_LOG_LEVEL: ${AI_GATEWAY_LOG_LEVEL:-info}
+      AI_GATEWAY_WORKERS: ${AI_GATEWAY_WORKERS:-1}
+    ports:
+      - "127.0.0.1:${AI_GATEWAY_PORT:-19090}:${AI_GATEWAY_PORT:-19090}"
+    restart: unless-stopped
+    profiles:
+      - all
+      - ai-gateway
+
+  # ===========================================================================
+  # [NEW] Fine-Tuning — Local model fine-tuning with Unsloth
+  # ===========================================================================
+  # Disabled by default. Enable with: docker compose --profile fine-tune up
+  # Requirements: NVIDIA GPU with CUDA 12.1+
+  # ===========================================================================
+  fine-tune:
+    build:
+      context: ./fine-tune
+      dockerfile: Dockerfile
+    container_name: kengine-fine-tune
+    env_file: .env
+    environment:
+      FINE_TUNE_ENABLED: ${FINE_TUNE_ENABLED:-false}
+      FINE_TUNE_BASE_MODEL: ${FINE_TUNE_BASE_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      FINE_TUNE_METHOD: ${FINE_TUNE_METHOD:-lora}
+      FINE_TUNE_R: ${FINE_TUNE_R:-16}
+      FINE_TUNE_ALPHA: ${FINE_TUNE_ALPHA:-32}
+      FINE_TUNE_DROPOUT: ${FINE_TUNE_DROPOUT:-0.1}
+      FINE_TUNE_BATCH_SIZE: ${FINE_TUNE_BATCH_SIZE:-4}
+      FINE_TUNE_EPOCHS: ${FINE_TUNE_EPOCHS:-3}
+      FINE_TUNE_LEARNING_RATE: ${FINE_TUNE_LEARNING_RATE:-2e-4}
+      NVIDIA_VISIBLE_DEVICES: ${FINE_TUNE_GPU_DEVICES:-all}
+    volumes:
+      - ./fine-tune/output:/app/fine-tune/output
+      - ./fine-tune/datasets:/app/fine-tune/datasets
+      - docker-data/huggingface:/root/.cache/huggingface
+    depends_on: [postgres]
+    restart: "no"
+    profiles:
+      - all
+      - fine-tune
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

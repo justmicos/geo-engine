@@ -9,7 +9,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Scan for privacy leaks
-        run: python3 scripts/privacy-check.py geo-engine/
+        run: |
+          pip install -q regex 2>/dev/null || true
+          python3 -c "
+import os, re, sys
+SECRET_PATTERNS = [
+    (r'sk-[a-zA-Z0-9]{20,}', 'API Key'),
+    (r'ghp_[a-zA-Z0-9]{36}', 'GitHub PAT'),
+    (r'-----BEGIN (RSA|OPENSSH|PGP) PRIVATE KEY-----', 'Private Key'),
+    (r'AKIA[0-9A-Z]{16}', 'AWS Access Key'),
+]
+errors = 0
+for root, dirs, files in os.walk('geo-engine'):
+    dirs[:] = [d for d in dirs if d.startswith('.') or d in ('node_modules','vendor')]
+    for f in files:
+        if f in ('.env','.env.example'): continue
+        path = os.path.join(root, f)
+        try:
+            with open(path, 'r', errors='ignore') as fh:
+                for i, line in enumerate(fh, 1):
+                    for pattern, name in SECRET_PATTERNS:
+                        if re.search(pattern, line):
+                            print(f'::error file={path},line={i}::{name} found')
+                            errors += 1
+        except: pass
+sys.exit(errors)
+"
   file-check:
     name: FILE CHECK
     runs-on: ubuntu-latest
@@ -17,7 +42,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
+          errors=0
           for f in geo-engine/Makefile geo-engine/LICENSE geo-engine/README.md geo-engine/ARCHITECTURE.md geo-engine/.env.example geo-engine/docker-compose.yml geo-engine/scripts/setup.sh geo-engine/scripts/setup.ps1; do
-            [ ! -f "$f" ] && echo "::error::Missing $f" && exit 1
+            [ ! -f "$f" ] && echo "::error::Missing $f" && errors=$((errors+1))
           done
-          echo "All files OK"
+          [ $errors -eq 0 ] && echo "All files OK" || exit 1
